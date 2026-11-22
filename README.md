@@ -4,6 +4,9 @@
 
 A software Dynamic Island for **any** Mac display — made for a Mac mini on a monitor with no notch. Native Swift + SwiftUI, Apple's own Live Activity layouts (compact, minimal, expanded) and spring motion.
 
+<p align="center"><img src="docs/compact.png" width="420" alt="Compact timer"> <img src="docs/expanded.png" width="420" alt="Expanded timer"></p>
+<p align="center"><sub>Real captures from the macOS CI runner (<code>--demo</code>): compact timer, then the bloom into expanded.</sub></p>
+
 ## Features
 - **Now Playing from any app** — Music, Spotify, Safari/Chrome video, YouTube, VLC… Artwork, title/artist, live waveform tinted by the artwork, scrubber, previous / play-pause / next.
 - **Timer** — 1/5/10/25 min presets or custom, countdown with numeric roll, pause/cancel, blooms when done.
