@@ -32,6 +32,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             onTogglePause: { [weak self] in self?.togglePause() }
         )
+
+        // `--demo`: start a 5-minute timer and bloom it (used by CI screenshots).
+        if CommandLine.arguments.contains("--demo") {
+            TimerActivity.shared.start(minutes: 5)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+                ActivityCenter.shared.bloom(TimerActivity.shared.id, for: 8)
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

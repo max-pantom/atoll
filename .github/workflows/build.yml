@@ -28,9 +28,11 @@ jobs:
         run: |
           mkdir -p shots
           open dist/Atoll.app --args --demo
-          sleep 8
+          sleep 3
+          screencapture -x shots/compact.png || true
+          sleep 3
           pgrep -x Atoll && echo "Atoll is running"
-          screencapture -x shots/desktop.png || true
+          screencapture -x shots/expanded.png || true
           pkill -x Atoll || true
       - uses: actions/upload-artifact@v4
         with:
