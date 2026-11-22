@@ -165,8 +165,11 @@ private final class VolumeMonitor {
 
     /// (Re)attaches listeners to the current default output device. Switching device is silent.
     private func bindDevice() {
-        for (var addr, block) in deviceListeners where deviceID != 0 {
-            AudioObjectRemovePropertyListenerBlock(deviceID, &addr, DispatchQueue.main, block)
+        if deviceID != 0 {
+            for (a, block) in deviceListeners {
+                var addr = a
+                AudioObjectRemovePropertyListenerBlock(deviceID, &addr, DispatchQueue.main, block)
+            }
         }
         deviceListeners = []
         deviceID = defaultOutputDevice()
@@ -178,6 +181,7 @@ private final class VolumeMonitor {
         let out = kAudioDevicePropertyScopeOutput
         let addresses = [
             Self.address(Self.virtualMainVolume, scope: out),
+            Self.address(kAudioDevicePropertyVolumeScalar, scope: out, element: kAudioObjectPropertyElementMain),
             Self.address(kAudioDevicePropertyVolumeScalar, scope: out, element: 1),
             Self.address(kAudioDevicePropertyMute, scope: out),
         ]
@@ -205,8 +209,8 @@ private final class VolumeMonitor {
         var vol = Self.address(Self.virtualMainVolume, scope: out)
         var ok = AudioObjectHasProperty(deviceID, &vol)
             && AudioObjectGetPropertyData(deviceID, &vol, 0, nil, &size, &level) == noErr
-        if !ok {
-            var ch = Self.address(kAudioDevicePropertyVolumeScalar, scope: out, element: 1)
+        for element in [kAudioObjectPropertyElementMain, AudioObjectPropertyElement(1)] where !ok {
+            var ch = Self.address(kAudioDevicePropertyVolumeScalar, scope: out, element: element)
             size = UInt32(MemoryLayout<Float32>.size)
             ok = AudioObjectHasProperty(deviceID, &ch)
                 && AudioObjectGetPropertyData(deviceID, &ch, 0, nil, &size, &level) == noErr

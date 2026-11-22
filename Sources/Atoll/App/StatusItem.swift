@@ -31,6 +31,21 @@ final class StatusItemController: NSObject {
         menu.addItem(pauseItem)
         setPaused(false)
 
+        let timerItem = NSMenuItem(title: "Timer", action: nil, keyEquivalent: "")
+        let timerMenu = NSMenu()
+        for minutes in [1, 5, 10, 25] {
+            let m = NSMenuItem(title: "\(minutes) min", action: #selector(startTimer(_:)), keyEquivalent: "")
+            m.target = self
+            m.tag = minutes
+            timerMenu.addItem(m)
+        }
+        timerMenu.addItem(.separator())
+        let cancel = NSMenuItem(title: "Cancel timer", action: #selector(cancelTimer), keyEquivalent: "")
+        cancel.target = self
+        timerMenu.addItem(cancel)
+        timerItem.submenu = timerMenu
+        menu.addItem(timerItem)
+
         menu.addItem(.separator())
         let quit = NSMenuItem(title: "Quit Atoll", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
@@ -46,5 +61,7 @@ final class StatusItemController: NSObject {
 
     @objc private func openSettings() { onSettings() }
     @objc private func togglePause() { onTogglePause() }
+    @objc private func startTimer(_ sender: NSMenuItem) { TimerActivity.shared.start(minutes: sender.tag) }
+    @objc private func cancelTimer() { TimerActivity.shared.cancel() }
     @objc private func quit() { NSApp.terminate(nil) }
 }

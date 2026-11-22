@@ -63,7 +63,7 @@ final class ShelfActivity: IslandActivity {
         let urls = items.map { $0.url as NSURL }
         guard !urls.isEmpty, let service = NSSharingService(named: .sendViaAirDrop),
               service.canPerform(withItems: urls) else { return }
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
         service.perform(withItems: urls)
     }
 
@@ -117,7 +117,6 @@ private struct ShelfTrailing: View {
 
 private struct ShelfExpanded: View {
     let activity: ShelfActivity
-    @State private var targeted = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -133,7 +132,7 @@ private struct ShelfExpanded: View {
             ZStack {
                 if activity.items.isEmpty {
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color.white.opacity(activity.isDragTarget || targeted ? 0.6 : 0.2),
+                        .strokeBorder(Color.white.opacity(activity.isDragTarget ? 0.6 : 0.2),
                                       style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                         .overlay(
                             Label("Drop files here", systemImage: "arrow.down.to.line")
@@ -154,13 +153,7 @@ private struct ShelfExpanded: View {
             }
             .frame(maxHeight: .infinity)
         }
-        .onDrop(of: [UTType.fileURL], isTargeted: $targeted) { providers in
-            ShelfActivity.loadURLs(from: providers) { urls in
-                Task { @MainActor in ShelfActivity.shared.accept(urls: urls) }
-            }
-            return true
-        }
-        .animation(.smooth(duration: 0.2), value: targeted)
+        .animation(.smooth(duration: 0.2), value: activity.isDragTarget)
     }
 
     private func headerButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {

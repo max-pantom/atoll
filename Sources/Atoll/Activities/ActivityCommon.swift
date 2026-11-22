@@ -12,7 +12,8 @@ enum AtollPalette {
 
 @MainActor
 enum ActivityMetrics {
-    static var scale: CGFloat { CGFloat(AtollSettings.shared.scale) }
+    /// The shell scales the whole canvas, so activities work in logical points.
+    static var scale: CGFloat { 1 }
     /// Island height in compact presentation (RESEARCH.md §2).
     static var compactHeight: CGFloat { 37.33 * scale }
     /// Horizontal inset of expanded content; concentric with the 44 pt island corner.
@@ -51,10 +52,9 @@ extension View {
     /// `width` is kept for call-site clarity.
     @MainActor
     func compactSlot(_ side: CompactSide, width: CGFloat) -> some View {
-        let s = ActivityMetrics.scale
+        // The shell already insets compact sides (`IslandMetrics.compactInset`).
         return self
             .foregroundStyle(.white)
-            .padding(side == .leading ? .leading : .trailing, 9 * s)
             .frame(maxWidth: .infinity, maxHeight: .infinity,
                    alignment: side == .leading ? .leading : .trailing)
     }

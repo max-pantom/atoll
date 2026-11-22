@@ -13,7 +13,7 @@ enum IslandMetrics {
     static let expandedInsetV: CGFloat = 16
     static let expandedInsetH: CGFloat = 20
     /// Content height of the idle "Nothing playing" card.
-    static let idleCardHeight: CGFloat = 84
+    static let idleCardHeight: CGFloat = 92
 
     /// The panel's logical canvas. The panel is fixed at this size (times scale).
     static let canvasWidth: CGFloat = 620

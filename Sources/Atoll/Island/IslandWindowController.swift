@@ -2,6 +2,11 @@ import SwiftUI
 import AppKit
 import Observation
 
+/// Accepts the first click so island buttons work while the panel is not key.
+final class IslandHostingView<V: View>: NSHostingView<V> {
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+}
+
 /// Owns the panel: positions it on the chosen screen, keeps it click-through outside the island
 /// and feeds pointer position to the model (hover) through mouse monitors.
 @MainActor
@@ -10,9 +15,10 @@ final class IslandWindowController {
     private let model = IslandModel.shared
     private var monitors: [Any] = []
     private var observers: [NSObjectProtocol] = []
+    private var dragTimer: Timer?
 
     func start() {
-        let host = NSHostingView(rootView: IslandView(model: model))
+        let host = IslandHostingView(rootView: IslandView(model: model))
         host.sizingOptions = []
         let drop = IslandDropView(frame: NSRect(x: 0, y: 0, width: 100, height: 100))
         host.frame = drop.bounds
@@ -100,12 +106,46 @@ final class IslandWindowController {
         let e = model.hitExtent()
         let pad: CGFloat = 4
         let top = panel.frame.maxY - IslandMetrics.topInset * s
+        // Extra reach above the screen makes the top edge easy to hit, unless a display sits above.
+        let above: CGFloat = hasScreenAbove() ? 0 : 200
         return NSRect(
             x: panel.frame.midX - e.left * s - pad,
             y: top - e.height * s - pad,
             width: (e.left + e.right) * s + 2 * pad,
-            height: e.height * s + pad + 200   // extends above the screen so the top edge is easy to hit
+            height: e.height * s + pad + above
         )
+    }
+
+    private func hasScreenAbove() -> Bool {
+        guard let screen = targetScreen() else { return false }
+        return NSScreen.screens.contains { other in
+            other !== screen
+                && abs(other.frame.minY - screen.frame.maxY) < 1
+                && other.frame.maxX > screen.frame.minX && other.frame.minX < screen.frame.maxX
+        }
+    }
+
+    /// While a button is held (e.g. a Finder file drag) poll the pointer, since move events may not arrive.
+    private func handleDragEvent(_ type: NSEvent.EventType) {
+        switch type {
+        case .leftMouseDragged:
+            guard dragTimer == nil else { return }
+            dragTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+                Task { @MainActor in
+                    guard let self else { return }
+                    if NSEvent.pressedMouseButtons == 0 { self.stopDragPolling() }
+                    self.updateMouse()
+                }
+            }
+        case .leftMouseUp:
+            stopDragPolling()
+        default: break
+        }
+    }
+
+    private func stopDragPolling() {
+        dragTimer?.invalidate()
+        dragTimer = nil
     }
 
     private func updateMouse() {
@@ -116,8 +156,12 @@ final class IslandWindowController {
 
     private func installMonitors() {
         let moves: NSEvent.EventTypeMask = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .leftMouseUp]
-        if let g = NSEvent.addGlobalMonitorForEvents(matching: moves, handler: { [weak self] _ in
-            Task { @MainActor in self?.updateMouse() }
+        if let g = NSEvent.addGlobalMonitorForEvents(matching: moves, handler: { [weak self] event in
+            let type = event.type
+            Task { @MainActor in
+                self?.updateMouse()
+                self?.handleDragEvent(type)
+            }
         }) { monitors.append(g) }
 
         // Presses that reach the global monitor landed outside our (click-through) panel.

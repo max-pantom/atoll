@@ -34,6 +34,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
     }
 
+    func applicationWillTerminate(_ notification: Notification) {
+        NowPlayingActivity.shared.stop()
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     private func togglePause() {

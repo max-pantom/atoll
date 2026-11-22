@@ -83,6 +83,8 @@ final class AdapterSource: MediaSource {
     private var stopped = false
     private var state: [String: Any] = [:]
     private var artworkData: Data?
+    private var gotData = false
+    private var outHandle: FileHandle?
 
     private static let isoFractional: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]; return f
@@ -104,6 +106,7 @@ final class AdapterSource: MediaSource {
 
     func start() -> Bool {
         stopped = false
+        gotData = false
         guard process == nil, let paths = Self.locate() else { return false }
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/perl")
@@ -116,6 +119,7 @@ final class AdapterSource: MediaSource {
         let reader = LineReader { [weak self] line in
             Task { @MainActor in self?.handle(line: line) }
         }
+        outHandle = out.fileHandleForReading
         out.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
             if data.isEmpty { handle.readabilityHandler = nil; return }
@@ -128,11 +132,23 @@ final class AdapterSource: MediaSource {
         do { try p.run() } catch { return false }
         process = p
         startedAt = Date()
+        // If the helper stays alive but never reports, let the AppleScript fallback take over
+        // (only when a scriptable player is running, otherwise silence is normal).
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard let self, !self.stopped, self.process === p, !self.gotData else { return }
+            let players = ["com.apple.Music", "com.spotify.client"]
+            if NSWorkspace.shared.runningApplications.contains(where: { players.contains($0.bundleIdentifier ?? "") }) {
+                self.onFailure?()
+            }
+        }
         return true
     }
 
     func stop() {
         stopped = true
+        outHandle?.readabilityHandler = nil
+        outHandle = nil
         process?.terminationHandler = nil
         if process?.isRunning == true { process?.terminate() }
         process = nil
@@ -159,6 +175,7 @@ final class AdapterSource: MediaSource {
         guard let data = line.data(using: .utf8),
               let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return }
         if let type = obj["type"] as? String, type != "data" { return }
+        gotData = true
         let payload = (obj["payload"] as? [String: Any]) ?? obj
         let diff = (obj["diff"] as? Bool) ?? false
 
@@ -300,6 +317,21 @@ final class MediaRemoteSource: MediaSource {
 
 // MARK: - 3. AppleScript (Music, Spotify)
 
+private struct ScriptResult: @unchecked Sendable {
+    var desc: NSAppleEventDescriptor?
+    var errorNumber: Int?
+}
+
+private let appleScriptQueue = DispatchQueue(label: "atoll.applescript", qos: .utility)
+
+private func runAppleScript(_ source: String) -> ScriptResult {
+    var err: NSDictionary?
+    guard let script = NSAppleScript(source: source) else { return ScriptResult() }
+    let result = script.executeAndReturnError(&err)
+    if let err { return ScriptResult(desc: nil, errorNumber: (err[NSAppleScript.errorNumber] as? NSNumber)?.intValue) }
+    return ScriptResult(desc: result, errorNumber: nil)
+}
+
 @MainActor
 final class AppleScriptSource: MediaSource {
     let name = "applescript"
@@ -318,6 +350,8 @@ final class AppleScriptSource: MediaSource {
     private var artKey = ""
     private var artData: Data?
     private var artTask: Task<Void, Never>?
+    private var polling = false
+    private var published: NowPlayingInfo?
 
     func start() -> Bool {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
@@ -337,19 +371,45 @@ final class AppleScriptSource: MediaSource {
     }
 
     private func tick() {
+        guard !polling else { return }
+        polling = true
+        Task { @MainActor [weak self] in
+            await self?.poll()
+            self?.polling = false
+        }
+    }
+
+    private func poll() async {
         var chosen: (Player, NowPlayingInfo)?
         for p in Player.allCases where isRunning(p) && !denied.contains(p.bundleID) {
-            guard let info = query(p) else { continue }
+            guard let info = await query(p) else { continue }
             if chosen == nil || (info.playing && chosen?.1.playing == false) { chosen = (p, info) }
         }
-        guard var (player, info) = chosen else { current = nil; onUpdate?(nil); return }
+        guard timer != nil else { return }   // stopped while waiting
+        guard var (player, info) = chosen else {
+            current = nil
+            if published != nil { published = nil; onUpdate?(nil) }
+            return
+        }
         current = player
         if info.trackKey != artKey {
             artKey = info.trackKey
             artData = nil
-            loadArtwork(for: player, key: artKey)
+            await loadArtwork(for: player, key: artKey)
         }
         info.artwork = artData
+        publish(info)
+    }
+
+    /// Only publish when something observable changed, so views do not re-render every second.
+    private func publish(_ info: NowPlayingInfo) {
+        if let old = published,
+           old.trackKey == info.trackKey, old.playing == info.playing, old.duration == info.duration,
+           old.artwork?.count == info.artwork?.count,
+           abs(old.position(at: info.timestamp) - info.elapsed) <= 1.5 {
+            return
+        }
+        published = info
         onUpdate?(info)
     }
 
@@ -374,16 +434,16 @@ final class AppleScriptSource: MediaSource {
         }
     }
 
-    private func execute(_ source: String) -> (NSAppleEventDescriptor?, Int?) {
-        var err: NSDictionary?
-        guard let script = NSAppleScript(source: source) else { return (nil, nil) }
-        let result = script.executeAndReturnError(&err)
-        if let err { return (nil, (err[NSAppleScript.errorNumber] as? NSNumber)?.intValue) }
-        return (result, nil)
+    /// NSAppleScript is confined to one serial queue so a slow player never blocks the main thread.
+    private func execute(_ source: String) async -> ScriptResult {
+        await withCheckedContinuation { cont in
+            appleScriptQueue.async { cont.resume(returning: runAppleScript(source)) }
+        }
     }
 
-    private func query(_ p: Player) -> NowPlayingInfo? {
-        let (desc, errorNumber) = execute(script(for: p))
+    private func query(_ p: Player) async -> NowPlayingInfo? {
+        let result = await execute(script(for: p))
+        let (desc, errorNumber) = (result.desc, result.errorNumber)
         if errorNumber == -1743 { denied.insert(p.bundleID); return nil }   // Automation permission refused
         guard let desc, desc.numberOfItems >= 6 else { return nil }
         var info = NowPlayingInfo()
@@ -401,11 +461,11 @@ final class AppleScriptSource: MediaSource {
 
     private var spotifyArtURL: String?
 
-    private func loadArtwork(for p: Player, key: String) {
+    private func loadArtwork(for p: Player, key: String) async {
         artTask?.cancel()
         switch p {
         case .music:
-            let (desc, _) = execute("""
+            let desc = await execute("""
             tell application "Music"
               try
                 return data of artwork 1 of current track
@@ -413,7 +473,7 @@ final class AppleScriptSource: MediaSource {
                 return missing value
               end try
             end tell
-            """)
+            """).desc
             if let data = desc?.data, data.count > 16 { artData = data }
         case .spotify:
             guard let s = spotifyArtURL, let url = URL(string: s) else { return }
@@ -436,12 +496,16 @@ final class AppleScriptSource: MediaSource {
         case .next: verb = "next track"
         case .previous: verb = "previous track"
         }
-        _ = execute("tell application \"\(p.appName)\" to \(verb)")
-        tick()
+        let src = "tell application \"\(p.appName)\" to \(verb)"
+        Task { @MainActor [weak self] in
+            _ = await self?.execute(src)
+            self?.tick()
+        }
     }
 
     func seek(to seconds: Double) {
         guard let p = current else { return }
-        _ = execute("tell application \"\(p.appName)\" to set player position to \(Int(seconds))")
+        let src = "tell application \"\(p.appName)\" to set player position to \(Int(seconds))"
+        Task { @MainActor [weak self] in _ = await self?.execute(src) }
     }
 }

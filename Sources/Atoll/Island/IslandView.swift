@@ -1,10 +1,5 @@
 import SwiftUI
 
-extension Notification.Name {
-    /// Posted by the idle card's presets. userInfo["seconds"] is a TimeInterval; the timer activity starts it.
-    static let atollStartTimer = Notification.Name("atoll.startTimer")
-}
-
 /// Content transition: blur + scale + fade. In goes after the shape starts moving, out happens first.
 private struct BlurScale: ViewModifier {
     let amount: CGFloat   // 1 = fully hidden, 0 = fully shown
@@ -18,7 +13,7 @@ private struct BlurScale: ViewModifier {
 }
 
 private extension AnyTransition {
-    static func islandContent(reduceMotion: Bool) -> AnyTransition {
+    static func islandSwap(reduceMotion: Bool) -> AnyTransition {
         if reduceMotion { return AnyTransition.opacity.animation(.easeInOut(duration: 0.15)) }
         let hidden = BlurScale(amount: 1)
         let shown = BlurScale(amount: 0)
@@ -71,7 +66,7 @@ struct IslandView: View {
                     content(l)
                         .frame(width: l.width, height: l.height)
                         .id(l.contentKey)
-                        .transition(.islandContent(reduceMotion: model.reduceMotion))
+                        .transition(.islandSwap(reduceMotion: model.reduceMotion))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -95,7 +90,7 @@ struct IslandView: View {
                                         bottom: M.expandedInsetV, trailing: M.expandedInsetH))
                     .frame(width: l.width, height: l.height)
             } else {
-                IdleCard()
+                Activities.idleCard()
                     .padding(EdgeInsets(top: M.expandedInsetV, leading: M.expandedInsetH,
                                         bottom: M.expandedInsetV, trailing: M.expandedInsetH))
                     .frame(width: l.width, height: l.height)
@@ -213,45 +208,5 @@ private struct DetachedBubble: View, Animatable {
             .allowsHitTesting(r > 0.9)
         }
         .frame(width: M.canvasWidth, height: M.height + 2 * Self.pad, alignment: .topLeading)
-    }
-}
-
-/// Expanded card when nothing is active.
-private struct IdleCard: View {
-    private let presets = [1, 5, 10, 25]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: "waveform")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Text("Nothing playing")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-            }
-            HStack(spacing: 8) {
-                ForEach(presets, id: \.self) { minutes in
-                    Button {
-                        NotificationCenter.default.post(
-                            name: .atollStartTimer, object: nil,
-                            userInfo: ["seconds": TimeInterval(minutes * 60)])
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "timer")
-                                .font(.system(size: 11, weight: .bold))
-                            Text("\(minutes) min")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                        }
-                        .foregroundStyle(Color(red: 1.0, green: 0.62, blue: 0.04))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 30)
-                        .background(Capsule(style: .continuous).fill(Color.white.opacity(0.12)))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
     }
 }

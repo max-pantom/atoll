@@ -38,10 +38,7 @@ final class NowPlayingActivity: IslandActivity {
     func compactLeading() -> AnyView { AnyView(NowPlayingCompactLeading(activity: self)) }
     func compactTrailing() -> AnyView { AnyView(NowPlayingCompactTrailing(activity: self)) }
     func minimal() -> AnyView { AnyView(NowPlayingMinimal(activity: self)) }
-    func expanded() -> AnyView {
-        if info == nil { return Activities.idleCard() }
-        return AnyView(NowPlayingExpanded(activity: self))
-    }
+    func expanded() -> AnyView { AnyView(NowPlayingExpanded(activity: self)) }
 
     // MARK: Sources
 
@@ -49,6 +46,12 @@ final class NowPlayingActivity: IslandActivity {
         guard !started else { return }
         started = true
         advance()
+    }
+
+    /// Stops the media source (and its helper process) on quit.
+    func stop() {
+        source?.stop()
+        source = nil
     }
 
     private func makeSource(_ index: Int) -> MediaSource? {
