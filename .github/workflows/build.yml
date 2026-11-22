@@ -23,6 +23,20 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           [[ "$GITHUB_REF" == refs/tags/v* ]] || VERSION="0.1.0-dev.${GITHUB_RUN_NUMBER}"
           scripts/bundle.sh "$VERSION"
+      - name: Smoke test + screenshot
+        continue-on-error: true
+        run: |
+          mkdir -p shots
+          open dist/Atoll.app --args --demo
+          sleep 8
+          pgrep -x Atoll && echo "Atoll is running"
+          screencapture -x shots/desktop.png || true
+          pkill -x Atoll || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: shots/
+          if-no-files-found: ignore
       - name: Zip
         run: cd dist && ditto -c -k --keepParent Atoll.app Atoll.zip
       - uses: actions/upload-artifact@v4
