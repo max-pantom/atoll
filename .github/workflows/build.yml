@@ -27,6 +27,9 @@ jobs:
         continue-on-error: true
         run: |
           mkdir -p shots
+          ls "/System/Library/Desktop Pictures/Solid Colors/" || true
+          osascript -e 'tell application "System Events" to tell every desktop to set picture to "/System/Library/Desktop Pictures/Solid Colors/Silver.png"' || true
+          sleep 2
           open dist/Atoll.app --args --demo
           sleep 3
           screencapture -x shots/compact.png || true

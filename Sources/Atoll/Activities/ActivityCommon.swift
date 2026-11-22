@@ -55,6 +55,7 @@ extension View {
         // The shell already insets compact sides (`IslandMetrics.compactInset`).
         return self
             .foregroundStyle(.white)
+            .fixedSize(horizontal: true, vertical: false)
             .frame(maxWidth: .infinity, maxHeight: .infinity,
                    alignment: side == .leading ? .leading : .trailing)
     }

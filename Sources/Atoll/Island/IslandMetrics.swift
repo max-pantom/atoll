@@ -17,11 +17,12 @@ enum IslandMetrics {
 
     /// The panel's logical canvas. The panel is fixed at this size (times scale).
     static let canvasWidth: CGFloat = 620
-    static let canvasHeight: CGFloat = 300
+    static let canvasHeight: CGFloat = 340
     /// Room above the island inside the canvas so blur and shadows are not clipped at the screen edge.
     static let topInset: CGFloat = 24
     static let maxExpandedWidth: CGFloat = 560
-    static let maxExpandedHeight: CGFloat = canvasHeight - topInset - 40
+    /// Leaves room below for the 20pt-blur, 8pt-offset shadow (28pt) plus margin.
+    static let maxExpandedHeight: CGFloat = canvasHeight - topInset - 60
 
     static func idleWidth(_ style: IslandStyle) -> CGFloat {
         style == .modern ? 126 : 82

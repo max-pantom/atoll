@@ -72,7 +72,8 @@ struct IslandView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .clipShape(shape)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // Explicit room for the tallest expanded island and its shadow; nothing here may clip the bottom corners.
+        .frame(width: M.canvasWidth, height: M.canvasHeight - M.topInset, alignment: .top)
         .scaleEffect(squish ? IslandMotion.pressScale : 1, anchor: .top)
         .animation(IslandMotion.resize, value: squish)
         .contentShape(shape)

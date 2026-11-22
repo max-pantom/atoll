@@ -38,7 +38,7 @@ final class HUDActivity: IslandActivity {
     let priority = 100
     var isActive: Bool { isShowing && AtollSettings.shared.replaceSystemHUD }
     var tint: Color { .white }
-    var compactSideWidth: CGFloat { 62 }
+    var compactSideWidth: CGFloat { 66 }
     var expandedHeight: CGFloat { 64 }
 
     func compactLeading() -> AnyView { AnyView(HUDGlyphView(hud: self).compactSlot(.leading, width: compactSideWidth)) }

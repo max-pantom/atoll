@@ -33,7 +33,7 @@ final class BatteryActivity: IslandActivity {
     var isActive: Bool { hasBattery && showing }
     var isLow: Bool { !pluggedIn && percent <= 20 }
     var tint: Color { isLow ? AtollPalette.red : (charging || pluggedIn ? AtollPalette.green : .white) }
-    var compactSideWidth: CGFloat { 60 }
+    var compactSideWidth: CGFloat { 76 }   // "100%" + glyph
     var expandedHeight: CGFloat { 92 }
 
     func compactLeading() -> AnyView { AnyView(BatteryLeading(activity: self).compactSlot(.leading, width: compactSideWidth)) }
@@ -146,6 +146,8 @@ private struct BatteryTrailing: View {
             Text("\(activity.percent)%")
                 .font(.island(14))
                 .monospacedDigit()
+                .lineLimit(1)
+                .fixedSize()
                 .contentTransition(.numericText())
             Image(systemName: activity.batterySymbol)
                 .font(.system(size: 15, weight: .semibold))

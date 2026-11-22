@@ -29,7 +29,11 @@ final class TimerActivity: IslandActivity {
 
     var isActive: Bool { phase != .idle }
     var tint: Color { AtollPalette.orange }
-    var compactSideWidth: CGFloat { 58 }
+    /// Sized for the widest text of the current run ("m:ss" or "h:mm:ss") so the countdown never clips.
+    var compactSideWidth: CGFloat {
+        let chars = TimerActivity.format(max(Int(total.rounded(.up)), seconds)).count
+        return max(62, CGFloat(chars) * 11 + 18)
+    }
     var expandedHeight: CGFloat { phase == .idle ? 128 : 100 }
 
     func compactLeading() -> AnyView { AnyView(TimerLeading(activity: self).compactSlot(.leading, width: compactSideWidth)) }
@@ -134,7 +138,7 @@ private struct TimerTrailing: View {
             .font(.island(15))
             .monospacedDigit()
             .lineLimit(1)
-            .minimumScaleFactor(0.7)
+            .fixedSize()
             .foregroundStyle(AtollPalette.orange)
             .opacity(activity.phase == .paused ? 0.55 : 1)
             .contentTransition(.numericText(countsDown: true))

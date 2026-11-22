@@ -37,7 +37,7 @@ final class CalendarActivity: IslandActivity {
 
     var isActive: Bool { next != nil }
     var tint: Color { next?.color ?? .white }
-    var compactSideWidth: CGFloat { 54 }
+    var compactSideWidth: CGFloat { 70 }   // fits "in 12m" / "in 2h"
     var expandedHeight: CGFloat { 104 }
 
     func compactLeading() -> AnyView { AnyView(CalendarLeading(activity: self).compactSlot(.leading, width: compactSideWidth)) }
@@ -62,6 +62,8 @@ final class CalendarActivity: IslandActivity {
     func refresh() async {
         now = Date()
         guard AtollSettings.shared.isEnabled(id) else { next = nil; return }
+        // CI screenshots (`--demo`) must not trigger the system calendar permission prompt.
+        guard !CommandLine.arguments.contains("--demo") else { next = nil; return }
 
         var status = EKEventStore.authorizationStatus(for: .event)
         if status == .notDetermined, !requested {
@@ -146,7 +148,7 @@ private struct CalendarTrailing: View {
             .font(.island(13))
             .monospacedDigit()
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
+            .fixedSize()
             .contentTransition(.numericText(countsDown: true))
             .animation(.smooth(duration: 0.25), value: activity.relativeLabel)
     }
