@@ -1,0 +1,36 @@
+name: build
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version && xcodebuild -version
+      - name: Now Playing helper
+        run: |
+          brew list cmake >/dev/null 2>&1 || brew install cmake
+          scripts/fetch-mediaremote.sh || echo "::warning::mediaremote-adapter build failed; app falls back to AppleScript"
+      - name: Build app
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          [[ "$GITHUB_REF" == refs/tags/v* ]] || VERSION="0.1.0-dev.${GITHUB_RUN_NUMBER}"
+          scripts/bundle.sh "$VERSION"
+      - name: Zip
+        run: cd dist && ditto -c -k --keepParent Atoll.app Atoll.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Atoll-app
+          path: dist/Atoll.zip
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/Atoll.zip --title "Atoll $GITHUB_REF_NAME" --generate-notes
