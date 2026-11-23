@@ -30,6 +30,10 @@ private struct SettingsView: View {
                 .tabItem { Label("General", systemImage: "gearshape") }
             ActivitiesSettings()
                 .tabItem { Label("Activities", systemImage: "square.grid.2x2") }
+            FocusSettings()
+                .tabItem { Label("Focus", systemImage: "scope") }
+            DevSettings()
+                .tabItem { Label("Developer", systemImage: "terminal") }
             AppearanceSettings()
                 .tabItem { Label("Appearance", systemImage: "paintbrush") }
             AboutSettings()
@@ -153,6 +157,11 @@ private struct ActivitiesSettings: View {
         Row(id: "clipboard", title: "Clipboard history", detail: "Last 20 copies; click to copy back, pin to keep.", symbol: "doc.on.clipboard", color: AtollPalette.blue),
         Row(id: "quickCapture", title: "Quick capture", detail: "Global hotkey: jot a note or reminder from anywhere.", symbol: "square.and.pencil", color: AtollPalette.orange),
         Row(id: "downloads", title: "Downloads", detail: "Progress for browser downloads and AirDrop arrivals.", symbol: "arrow.down.circle.fill", color: AtollPalette.blue),
+        Row(id: "focus", title: "Focus timer", detail: "25/5, 50/10, 90/15 sessions with a progress ring.", symbol: "scope", color: FocusPalette.indigo),
+        Row(id: "meeting", title: "Meeting bar", detail: "Mic and camera dots, time left, mute, and a heads-up before the next event.", symbol: "video.fill", color: AtollPalette.green),
+        Row(id: "dev.github", title: "GitHub Actions", detail: "Run status for your repos. Needs a token in the Developer tab.", symbol: "checkmark.circle", color: AtollPalette.blue),
+        Row(id: "dev.ping", title: "Terminal pings", detail: "Command-line alerts through the atoll:// URL scheme.", symbol: "terminal.fill", color: .gray),
+        Row(id: "dev.vercel", title: "Vercel", detail: "Latest deployment state. Needs a token in the Developer tab.", symbol: "triangle.fill", color: .white),
         Row(id: "hud", title: "Volume & brightness", detail: "Level bar when you press the volume or brightness keys.", symbol: "speaker.wave.2.fill", color: .gray),
     ]
 

@@ -1,0 +1,30 @@
+#!/bin/bash
+# atoll: send a ping to the island through the atoll:// URL scheme.
+#   atoll notify <title> [body] [ok|fail]
+set -u
+
+urlencode() {
+  local LC_ALL=C s="$1" i c out=""
+  for ((i = 0; i < ${#s}; i++)); do
+    c="${s:i:1}"
+    case "$c" in
+      [a-zA-Z0-9.~_-]) out+="$c" ;;
+      *) out+=$(printf '%%%02X' "'$c") ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
+case "${1:-}" in
+  notify)
+    shift
+    title="${1:-Terminal}"; body="${2:-}"; status="${3:-}"
+    url="atoll://notify?title=$(urlencode "$title")&body=$(urlencode "$body")"
+    [ -n "$status" ] && url+="&status=$(urlencode "$status")"
+    exec /usr/bin/open -g "$url"
+    ;;
+  *)
+    echo "usage: atoll notify <title> [body] [ok|fail]" >&2
+    exit 64
+    ;;
+esac

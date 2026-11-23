@@ -21,6 +21,11 @@ enum Activities {
         center.register(QuickCaptureActivity.shared)
         center.register(DownloadsActivity.shared)
         V02ASupport.seedDefaults()
+        center.register(FocusActivity.shared)
+        center.register(MeetingActivity.shared)
+        center.register(GitHubActionsActivity.shared)
+        center.register(TerminalPingActivity.shared)
+        center.register(VercelActivity.shared)
 
         HUDActivity.startMonitoring()
         BatteryActivity.shared.start()
@@ -29,6 +34,10 @@ enum Activities {
         ClipboardActivity.shared.start()
         QuickCaptureActivity.shared.start()
         DownloadsActivity.shared.start()
+        FocusShortcuts.shared.refresh()
+        MeetingActivity.shared.start()
+        GitHubActionsActivity.shared.start()
+        VercelActivity.shared.start()
     }
 
     /// Height of `idleCard()`; the shell uses it when the island expands with nothing active.
