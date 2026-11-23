@@ -130,24 +130,30 @@ final class QuickCaptureActivity: IslandActivity {
 
     private static var isDemo: Bool { CommandLine.arguments.contains { $0.hasPrefix("--demo") } }
 
-    // MARK: Notes (AppleScript, off the main thread)
+    // MARK: Notes (osascript child process, off the main thread)
 
     private static func saveNote(_ text: String) async -> Result<String, CaptureError> {
         if isDemo { return .success("Saved to Notes") }
         let html = noteHTML(text)
         let source = "tell application \"Notes\" to make new note with properties {body:\"\(appleScriptEscaped(html))\"}"
+        // `osascript` in a child process: NSAppleScript is main-thread only and would race the Now Playing scripts.
         return await Task.detached(priority: .userInitiated) { () -> Result<String, CaptureError> in
-            var error: NSDictionary?
-            guard let script = NSAppleScript(source: source) else {
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            p.arguments = ["-e", source]
+            let err = Pipe()
+            p.standardError = err
+            p.standardOutput = FileHandle.nullDevice
+            do { try p.run() } catch {
                 return .failure(CaptureError(message: "Could not talk to Notes"))
             }
-            script.executeAndReturnError(&error)
-            guard let error else { return .success("Saved to Notes") }
-            let code = (error[NSAppleScript.errorNumber] as? Int) ?? 0
-            if code == -1743 {
+            let text = String(data: err.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+            p.waitUntilExit()
+            if p.terminationStatus == 0 { return .success("Saved to Notes") }
+            if text.contains("-1743") {
                 return .failure(CaptureError(message: "Allow Atoll to control Notes in System Settings › Privacy › Automation"))
             }
-            return .failure(CaptureError(message: "Notes error \(code)"))
+            return .failure(CaptureError(message: "Could not save to Notes"))
         }.value
     }
 

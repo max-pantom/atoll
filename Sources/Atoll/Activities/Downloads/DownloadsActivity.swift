@@ -200,7 +200,8 @@ final class DownloadsWatcher: @unchecked Sendable {
             let vanished = partials.subtracting(partialNow.keys)
             for gone in vanished.sorted() {
                 let stem = (gone as NSString).deletingPathExtension
-                let match = recent.keys.first(where: { $0 == stem }) ?? recent.sorted { $0.value > $1.value }.first?.key
+                // Fall back to the lone new file only; with several candidates a cancelled download could match the wrong one.
+                let match = recent.keys.first(where: { $0 == stem }) ?? (recent.count == 1 ? recent.keys.first : nil)
                 if let match, let url = current[match] {
                     completed.append(Completed(url: url, airdrop: false))
                     recent[match] = nil
