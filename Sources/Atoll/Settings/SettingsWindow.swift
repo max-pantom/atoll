@@ -150,6 +150,9 @@ private struct ActivitiesSettings: View {
         Row(id: "battery", title: "Battery", detail: "Plug-in and low battery alerts.", symbol: "battery.100percent.bolt", color: AtollPalette.green),
         Row(id: "calendar", title: "Calendar", detail: "Your next event, with a Join button for video calls.", symbol: "calendar", color: AtollPalette.red),
         Row(id: "shelf", title: "Shelf", detail: "Drop files on the island, drag them out, AirDrop them.", symbol: "tray.full.fill", color: AtollPalette.blue),
+        Row(id: "clipboard", title: "Clipboard history", detail: "Last 20 copies; click to copy back, pin to keep.", symbol: "doc.on.clipboard", color: AtollPalette.blue),
+        Row(id: "quickCapture", title: "Quick capture", detail: "Global hotkey: jot a note or reminder from anywhere.", symbol: "square.and.pencil", color: AtollPalette.orange),
+        Row(id: "downloads", title: "Downloads", detail: "Progress for browser downloads and AirDrop arrivals.", symbol: "arrow.down.circle.fill", color: AtollPalette.blue),
         Row(id: "hud", title: "Volume & brightness", detail: "Level bar when you press the volume or brightness keys.", symbol: "speaker.wave.2.fill", color: .gray),
     ]
 
@@ -177,6 +180,8 @@ private struct ActivitiesSettings: View {
             } footer: {
                 Text("macOS keeps drawing its own on-screen display; Atoll shows its HUD alongside it.")
             }
+
+            CaptureClipboardSettings()
         }
         .formStyle(.grouped)
     }
