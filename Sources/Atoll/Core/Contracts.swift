@@ -127,9 +127,13 @@ final class AtollSettings {
     /// Activity ids switched off by the user.
     var disabledActivities: Set<String> { didSet { d.set(Array(disabledActivities), forKey: "disabledActivities") } }
 
+    /// Activities forced on for this run by `--demo=<name>`. Never persisted.
+    var demoEnabled: Set<String> = []
+
     func isEnabled(_ id: String) -> Bool {
         // "hud.volume" is governed by "hud", etc.
         let root = id.split(separator: ".").first.map(String.init) ?? id
+        if demoEnabled.contains(id) || demoEnabled.contains(root) { return true }
         return !disabledActivities.contains(id) && !disabledActivities.contains(root)
     }
 

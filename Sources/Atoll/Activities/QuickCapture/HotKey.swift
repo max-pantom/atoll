@@ -151,6 +151,7 @@ func trackEnabled(_ id: String, _ apply: @escaping @MainActor (Bool) -> Void) {
     func arm() {
         withObservationTracking {
             _ = AtollSettings.shared.disabledActivities
+            _ = AtollSettings.shared.demoEnabled
         } onChange: {
             Task { @MainActor in
                 apply(AtollSettings.shared.isEnabled(id))

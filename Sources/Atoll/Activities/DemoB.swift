@@ -1,5 +1,5 @@
 // `--demo=<name>` entry points for the focus, meeting and dev-mode activities (CI screenshots).
-// Names: focus, meeting, github, ping, vercel. Add `--demo-expand` to bloom the activity after 4 s.
+// Names: focus, meeting, github, ping, vercel.  Each demo blooms its activity after 4 s.
 import Foundation
 
 @MainActor
@@ -15,6 +15,7 @@ enum FeatureDemo {
         case "vercel": VercelActivity.shared.startDemo(); id = VercelActivity.shared.id
         default: return
         }
+        AtollSettings.shared.demoEnabled.insert(id)
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
             ActivityCenter.shared.bloom(id, for: 8)
         }

@@ -70,19 +70,19 @@ enum V02ASupport {
         let settings = AtollSettings.shared
         switch which {
         case "clipboard":
-            settings.disabledActivities.remove("clipboard")
+            settings.demoEnabled.insert("clipboard")
             let c = ClipboardActivity.shared
             for (text, source) in [("Meeting notes: ship v0.2 on Friday", "Notes"), ("https://primitive8.cc", "Safari"), ("npm run build && npm test", "Terminal")] {
                 c.ingest(ClipItem(kind: .text, text: text, date: Date().addingTimeInterval(-Double.random(in: 20...900)), source: source))
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) { c.summon() }
         case "capture":
-            settings.disabledActivities.remove("quickCapture")
+            settings.demoEnabled.insert("quickCapture")
             DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
                 QuickCaptureActivity.shared.summon(prefill: "Call the dentist tomorrow 9am")
             }
         case "downloads":
-            settings.disabledActivities.remove("downloads")
+            settings.demoEnabled.insert("downloads")
             DownloadsActivity.shared.runDemo()
         default:
             break
