@@ -61,6 +61,8 @@ struct IslandView: View {
             IslandFill(shape: shape, glass: glass)
                 .opacity(l.hidden ? 0 : 1)
                 .shadow(color: Color.black.opacity(expanded && !glass ? 0.3 : 0), radius: 20, x: 0, y: 8)
+            IslandDecorations(shape: shape, width: l.width, presentation: l.presentation)
+                .opacity(l.hidden ? 0 : 1)
             ZStack(alignment: .top) {
                 if model.contentVisible {
                     content(l)
