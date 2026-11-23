@@ -17,10 +17,10 @@ _atoll_precmd() {
   local took=$(( EPOCHSECONDS - _atoll_start ))
   _atoll_start=
   (( took < ATOLL_PING_MIN )) && return
-  local status=ok
-  (( code != 0 )) && status=fail
+  local st=ok
+  (( code != 0 )) && st=fail
   command -v atoll >/dev/null || return
-  atoll notify "${_atoll_cmd[(w)1]}" "${took}s, exit ${code}" "$status" &>/dev/null &!
+  atoll notify "${_atoll_cmd[(w)1]}" "${took}s, exit ${code}" "$st" &>/dev/null &!
 }
 
 autoload -Uz add-zsh-hook

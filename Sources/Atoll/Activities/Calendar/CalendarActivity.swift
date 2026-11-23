@@ -63,7 +63,7 @@ final class CalendarActivity: IslandActivity {
         now = Date()
         guard AtollSettings.shared.isEnabled(id) else { next = nil; return }
         // CI screenshots (`--demo`) must not trigger the system calendar permission prompt.
-        guard !CommandLine.arguments.contains("--demo") else { next = nil; return }
+        guard !CommandLine.arguments.contains(where: { $0.hasPrefix("--demo") }) else { next = nil; return }
 
         var status = EKEventStore.authorizationStatus(for: .event)
         if status == .notDetermined, !requested {
