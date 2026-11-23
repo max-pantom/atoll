@@ -118,7 +118,7 @@ final class IslandModel {
 
         if userExpanded || isDragTarget || bloom != nil {
             let pinned = pinnedID.flatMap { id in
-                (id == "shelf" || active.contains { $0.id == id }) ? id : nil
+                (id == "shelf" || id == "clipboard" || active.contains { $0.id == id }) ? id : nil
             }
             let id: String? = isDragTarget ? "shelf" : (bloom ?? pinned ?? active.first?.id)
             l.presentation = .expanded

@@ -15,7 +15,10 @@
   <key>NSHighResolutionCapable</key><true/>
   <key>NSCalendarsUsageDescription</key><string>Atoll shows your next calendar event in the island.</string>
   <key>NSCalendarsFullAccessUsageDescription</key><string>Atoll shows your next calendar event in the island.</string>
-  <key>NSAppleEventsUsageDescription</key><string>Atoll reads what Music or Spotify is playing when the system Now Playing service is unavailable.</string>
+  <key>NSAppleEventsUsageDescription</key><string>Atoll saves Quick Capture notes to Apple Notes, and reads what Music or Spotify is playing when the system Now Playing service is unavailable.</string>
+  <key>NSRemindersUsageDescription</key><string>Atoll saves Quick Capture reminders to your default Reminders list.</string>
+  <key>NSRemindersFullAccessUsageDescription</key><string>Atoll saves Quick Capture reminders to your default Reminders list.</string>
+  <key>NSDownloadsFolderUsageDescription</key><string>Atoll shows download progress and AirDrop arrivals from your Downloads folder.</string>
   <key>NSHumanReadableCopyright</key><string>Atoll — a software Dynamic Island for any Mac display.</string>
 </dict>
 </plist>

@@ -17,11 +17,18 @@ enum Activities {
         center.register(TimerActivity.shared)
         center.register(ShelfActivity.shared)
         center.register(CalendarActivity.shared)
+        center.register(ClipboardActivity.shared)
+        center.register(QuickCaptureActivity.shared)
+        center.register(DownloadsActivity.shared)
+        V02ASupport.seedDefaults()
 
         HUDActivity.startMonitoring()
         BatteryActivity.shared.start()
         NowPlayingActivity.shared.start()
         CalendarActivity.shared.start()
+        ClipboardActivity.shared.start()
+        QuickCaptureActivity.shared.start()
+        DownloadsActivity.shared.start()
     }
 
     /// Height of `idleCard()`; the shell uses it when the island expands with nothing active.
