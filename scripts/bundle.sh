@@ -15,6 +15,10 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN/Atoll" "$APP/Contents/MacOS/Atoll"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Info.plist > "$APP/Contents/Info.plist"
 
+# `atoll` command-line helper (terminal pings through atoll://notify).
+cp Resources/atoll "$APP/Contents/Resources/atoll"
+chmod +x "$APP/Contents/Resources/atoll"
+
 # App icon: PNG -> .icns with sips + iconutil
 ICONSET="$(mktemp -d)/AppIcon.iconset"; mkdir -p "$ICONSET"
 for s in 16 32 128 256 512; do

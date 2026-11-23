@@ -40,6 +40,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 ActivityCenter.shared.bloom(TimerActivity.shared.id, for: 8)
             }
         }
+        FeatureDemo.run(CommandLine.arguments)
+    }
+
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls { TerminalPingActivity.handle(url) }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

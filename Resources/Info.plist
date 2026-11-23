@@ -16,6 +16,13 @@
   <key>NSCalendarsUsageDescription</key><string>Atoll shows your next calendar event in the island.</string>
   <key>NSCalendarsFullAccessUsageDescription</key><string>Atoll shows your next calendar event in the island.</string>
   <key>NSAppleEventsUsageDescription</key><string>Atoll reads what Music or Spotify is playing when the system Now Playing service is unavailable.</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleURLName</key><string>cc.primitive8.atoll</string>
+      <key>CFBundleURLSchemes</key><array><string>atoll</string></array>
+    </dict>
+  </array>
   <key>NSHumanReadableCopyright</key><string>Atoll — a software Dynamic Island for any Mac display.</string>
 </dict>
 </plist>
