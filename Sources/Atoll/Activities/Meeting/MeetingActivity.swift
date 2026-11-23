@@ -20,7 +20,7 @@ final class MeetingActivity: IslandActivity {
 
     let id = "meeting"
     /// Heads-up pops above most things; the live bar itself stays below now playing (the dot overlay covers that case).
-    var priority: Int { headsUp != nil ? 70 : 30 }
+    var priority: Int { headsUp != nil ? 85 : 30 }
 
     private(set) var micOn = false
     private(set) var cameraOn = false
@@ -36,6 +36,7 @@ final class MeetingActivity: IslandActivity {
     @ObservationIgnored private var lastFetch = Date.distantPast
     @ObservationIgnored private var alerted = Set<String>()
     @ObservationIgnored private var timer: Timer?
+    @ObservationIgnored private var started = false
     @ObservationIgnored private var demo = false
     @ObservationIgnored private let queue = DispatchQueue(label: "cc.primitive8.atoll.meeting", qos: .utility)
 
@@ -59,23 +60,36 @@ final class MeetingActivity: IslandActivity {
     // MARK: Monitoring
 
     func start() {
+        guard !started else { return }
+        started = true
+        trackEnabled(id) { [weak self] on in
+            guard let self, !self.demo else { return }
+            on ? self.startTimer() : self.stop()
+        }
+    }
+
+    private func startTimer() {
         guard timer == nil else { return }
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+        let t = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.poll() }
         }
-        RunLoop.main.add(timer!, forMode: .common)
+        RunLoop.main.add(t, forMode: .common)
+        timer = t
         poll()
     }
 
-    func stop() { timer?.invalidate(); timer = nil }
+    /// Stops polling and clears state so nothing stale shows when the feature is switched back on.
+    func stop() {
+        timer?.invalidate()
+        timer = nil
+        micOn = false; cameraOn = false; muted = false; current = nil; headsUp = nil
+        cached = []
+        lastFetch = .distantPast
+    }
 
     private func poll() {
         guard !demo else { return }
         now = Date()
-        guard AtollSettings.shared.isEnabled(id) else {
-            micOn = false; cameraOn = false; current = nil; headsUp = nil
-            return
-        }
         // Device checks are cheap but go through CoreAudio/CoreMediaIO; keep them off the main thread.
         queue.async { [weak self] in
             let mic = DeviceMonitor.micInUse()
@@ -92,22 +106,38 @@ final class MeetingActivity: IslandActivity {
         derive()
     }
 
+    private struct RawEvent: Sendable {
+        let id: String, title: String, start: Date, end: Date
+        let texts: [String?]
+    }
+
+    /// EventKit queries are synchronous and can be slow on big calendars, so they run on `queue`.
     private func refreshEvents() {
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { cached = []; return }
-        let n = Date()
-        let predicate = store.predicateForEvents(withStart: n.addingTimeInterval(-6 * 3600), end: n.addingTimeInterval(600), calendars: nil)
-        cached = store.events(matching: predicate)
-            .filter { e in
-                guard !e.isAllDay, e.status != .canceled, e.endDate > n else { return false }
-                return e.attendees?.first(where: { $0.isCurrentUser })?.participantStatus != .declined
+        nonisolated(unsafe) let store = self.store
+        queue.async { [weak self] in
+            let n = Date()
+            let predicate = store.predicateForEvents(withStart: n.addingTimeInterval(-6 * 3600), end: n.addingTimeInterval(600), calendars: nil)
+            let raw = store.events(matching: predicate)
+                .filter { e in
+                    guard !e.isAllDay, e.status != .canceled, e.endDate > n else { return false }
+                    return e.attendees?.first(where: { $0.isCurrentUser })?.participantStatus != .declined
+                }
+                .sorted { $0.startDate < $1.startDate }
+                .map { e in
+                    RawEvent(id: e.eventIdentifier ?? UUID().uuidString,
+                             title: (e.title?.isEmpty == false ? e.title : nil) ?? "Meeting",
+                             start: e.startDate, end: e.endDate,
+                             texts: [e.url?.absoluteString, e.location, e.notes])
+                }
+            Task { @MainActor in
+                guard let self, self.timer != nil, !self.demo else { return }
+                self.cached = raw.map { Entry(id: $0.id, title: $0.title, start: $0.start, end: $0.end,
+                                              joinURL: CalendarActivity.joinURL(in: $0.texts)) }
+                self.now = Date()
+                self.derive()
             }
-            .sorted { $0.startDate < $1.startDate }
-            .map { e in
-                Entry(id: e.eventIdentifier ?? UUID().uuidString,
-                      title: (e.title?.isEmpty == false ? e.title : nil) ?? "Meeting",
-                      start: e.startDate, end: e.endDate,
-                      joinURL: CalendarActivity.joinURL(in: [e.url?.absoluteString, e.location, e.notes]))
-            }
+        }
     }
 
     private func derive() {
