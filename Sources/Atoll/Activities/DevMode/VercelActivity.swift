@@ -13,10 +13,22 @@ final class VercelActivity: CIActivity {
     @ObservationIgnored private var loop: Task<Void, Never>?
     @ObservationIgnored private var announced = Set<String>()
     @ObservationIgnored private var demo = false
+    @ObservationIgnored private var started = false
+    @ObservationIgnored private var token: String?
+    @ObservationIgnored private var tokenLoadedVersion = -1
 
     private init() {}
 
     func start() {
+        guard !started else { return }
+        started = true
+        trackEnabled(id) { [weak self] on in
+            guard let self, !self.demo else { return }
+            on ? self.startLoop() : self.stop()
+        }
+    }
+
+    private func startLoop() {
         guard loop == nil else { return }
         loop = Task { @MainActor [weak self] in
             while !Task.isCancelled {
@@ -27,11 +39,21 @@ final class VercelActivity: CIActivity {
         }
     }
 
-    func stop() { loop?.cancel(); loop = nil }
+    /// Stops polling and clears the shown item so a stale run does not reappear when re-enabled.
+    func stop() {
+        loop?.cancel()
+        loop = nil
+        token = nil
+        tokenLoadedVersion = -1
+        state.set(nil)
+    }
 
     private func pollOnce() async -> TimeInterval {
-        guard !demo, AtollSettings.shared.isEnabled(id),
-              let token = Keychain.get(DevConfig.vercelAccount), !token.isEmpty else { return 30 }
+        guard !demo else { return 30 }
+        // Read the Keychain once per token change, not on every poll.
+        let version = DevConfig.shared.tokenVersion
+        if tokenLoadedVersion != version { token = Keychain.get(DevConfig.vercelAccount); tokenLoadedVersion = version }
+        guard let token, !token.isEmpty else { return 30 }
         let projects = DevConfig.shared.vercelProjects.filter { !$0.isEmpty }
         guard !projects.isEmpty else { return 30 }
         let team = DevConfig.shared.vercelTeam

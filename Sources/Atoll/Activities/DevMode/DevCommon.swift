@@ -45,16 +45,19 @@ final class DevConfig {
     /// Bumped when a token changes so pollers restart.
     private(set) var tokenVersion = 0
 
-    var hasGitHubToken: Bool { _ = tokenVersion; return !(Keychain.get(Self.githubAccount) ?? "").isEmpty }
-    var hasVercelToken: Bool { _ = tokenVersion; return !(Keychain.get(Self.vercelAccount) ?? "").isEmpty }
+    /// Cached at launch and on every set, so Settings renders never touch the Keychain.
+    private(set) var hasGitHubToken: Bool
+    private(set) var hasVercelToken: Bool
 
-    func setGitHubToken(_ t: String?) { Keychain.set(t, for: Self.githubAccount); tokenVersion += 1 }
-    func setVercelToken(_ t: String?) { Keychain.set(t, for: Self.vercelAccount); tokenVersion += 1 }
+    func setGitHubToken(_ t: String?) { Keychain.set(t, for: Self.githubAccount); hasGitHubToken = !(t ?? "").isEmpty; tokenVersion += 1 }
+    func setVercelToken(_ t: String?) { Keychain.set(t, for: Self.vercelAccount); hasVercelToken = !(t ?? "").isEmpty; tokenVersion += 1 }
 
     private init() {
         repos = d.stringArray(forKey: "dev.repos") ?? []
         vercelProjects = d.stringArray(forKey: "dev.vercelProjects") ?? []
         vercelTeam = d.string(forKey: "dev.vercelTeam") ?? ""
+        hasGitHubToken = !(Keychain.get(Self.githubAccount) ?? "").isEmpty
+        hasVercelToken = !(Keychain.get(Self.vercelAccount) ?? "").isEmpty
     }
 }
 
@@ -97,7 +100,7 @@ protocol CIActivity: IslandActivity {
 
 extension CIActivity {
     var isActive: Bool { state.item != nil }
-    var priority: Int { state.item?.status == .running ? 35 : 75 }
+    var priority: Int { state.item?.status == .running ? 35 : 60 }
     var tint: Color { color(for: state.item?.status ?? .running) }
     var compactSideWidth: CGFloat { 78 }
     var expandedHeight: CGFloat { 96 }
@@ -113,15 +116,14 @@ extension CIActivity {
 struct CISpinner: View {
     var color: Color
     var size: CGFloat = 16
+    @State private var spinning = false
     var body: some View {
-        TimelineView(.animation) { ctx in
-            let t = ctx.date.timeIntervalSinceReferenceDate
-            Circle()
-                .trim(from: 0, to: 0.72)
-                .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                .rotationEffect(.degrees((t * 360).truncatingRemainder(dividingBy: 360)))
-                .frame(width: size, height: size)
-        }
+        Circle()
+            .trim(from: 0, to: 0.72)
+            .stroke(color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+            .rotationEffect(.degrees(spinning ? 360 : 0))
+            .frame(width: size, height: size)
+            .onAppear { withAnimation(.linear(duration: 1).repeatForever(autoreverses: false)) { spinning = true } }
     }
 }
 
